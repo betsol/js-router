@@ -1,0 +1,6 @@
+{
+    "name": "js-router",
+    "description": "Routing library for JavaScript. You can define and generate routes with it.",
+    "version": "1.0.0",
+    "main": "src/router.js"
+}
