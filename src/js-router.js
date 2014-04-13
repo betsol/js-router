@@ -5,7 +5,15 @@
     {
         var routes = {};
 
+        var preDefinedPlaceholderPatterns = {
+            symfony: '{%s}',
+            angular: ':%s'
+        };
+
+        var placeholderPattern = preDefinedPlaceholderPatterns.symfony;
+
         /**
+         * Returns route by it's name.
          * @param {string} routeName
          * @returns {Object|null}
          */
@@ -14,6 +22,7 @@
         }
 
         /**
+         * Validates route definition.
          * @param {Object} route
          */
         function validateRoute(route) {
@@ -27,6 +36,7 @@
         }
 
         /**
+         * Normalizes route definition.
          * @param {Object} route
          */
         function normalizeRoute(route) {
@@ -34,19 +44,22 @@
         }
 
         /**
+         * Extracts parameters from specified path based on placeholder pattern.
          * @param {string} path
-         * @returns {Array.string}
+         * @returns {Array.string|Array}
          */
         function extractParametersFromRoutePath(path) {
-            var pathParsingRegExp = /\{(.+?)\}/g;
             var parameters = [];
-            path.replace(pathParsingRegExp, function() {
+            var regExp = getRegExpForPathParsing();
+            // Find and no-replace trick to parse the string.
+            path.replace(regExp, function() {
                 parameters.push(arguments[1].trim());
             });
             return parameters;
         }
 
         /**
+         * Represents parameter's value as a string to be used in URL.
          * @param parameter
          * @returns {string}
          */
@@ -67,13 +80,63 @@
             }
         }
 
+        /**
+         * Returns placeholder pattern with replacement.
+         * @param {string} replacement
+         * @returns {string}
+         */
+        function buildPlaceholderPattern(replacement) {
+            // Adding optional spaces around parameter name.
+            return placeholderPattern.replace('%s', '\\s*' + replacement + '\\s*');
+        }
+
+        /**
+         * Generates RegExp for path parsing based on placeholder pattern.
+         * @returns {RegExp}
+         */
+        function getRegExpForPathParsing() {
+            var pattern = buildPlaceholderPattern('(.+?)') + '(/|$)';
+            return new RegExp(pattern, 'g');
+        }
+
+        /**
+         * Generates RegExp for specified parameter based on placeholder pattern.
+         * @param {string} parameterName
+         * @returns {RegExp}
+         */
+        function getRegExpForUrlGeneration(parameterName) {
+            var pattern = buildPlaceholderPattern(parameterName);
+            return new RegExp(pattern, 'g');
+        }
+
         // Public interface.
         return {
+
+            /**
+             * Sets placeholder pattern.
+             * @param {string} newValue
+             */
+            setPlaceholderPattern: function(newValue) {
+                if (null === newValue.match(/%s/)) {
+                    if ('undefined' != typeof preDefinedPlaceholderPatterns[newValue]) {
+                        placeholderPattern = preDefinedPlaceholderPatterns[newValue];
+                    } else {
+                        throw new Error('Your placeholder pattern must contain a "%s" part or be one of pre-defined ones.');
+                    }
+                } else {
+                    placeholderPattern = newValue;
+                }
+                // Maintaining chainability.
+                return this;
+            },
+
             /**
              * Clears all routes.
              */
-            clearRoutes: function() {
+            clear: function() {
                 routes = {};
+                // Maintaining chainability.
+                return this;
             },
 
             /**
@@ -90,10 +153,11 @@
              * @param {Object} route
              * @returns {Object}
              */
-            addRoute: function(routeName, route) {
+            add: function(routeName, route) {
                 validateRoute(route);
                 normalizeRoute(route);
                 routes[routeName] = route;
+                // Maintaining chainability.
                 return this;
             },
 
@@ -103,7 +167,7 @@
              * @param {string} routeName
              * @returns {Object|null}
              */
-            getRoute: function(routeName) {
+            get: function(routeName) {
                 return getRouteByName(routeName);
             },
 
@@ -112,7 +176,7 @@
              *
              * @returns {Object}
              */
-            getRoutes: function() {
+            getAll: function() {
                 return routes;
             },
 
@@ -124,8 +188,11 @@
              * @returns {string}
              */
             generate: function(routeName, inputParameters) {
-
                 var route = getRouteByName(routeName);
+
+                if (!route) {
+                    throw new Error('Route with name: "' + routeName + '" is not registered with the routing service.');
+                }
 
                 if (route.parameters.length > 0 && typeof inputParameters == 'undefined') {
                     throw new ReferenceError('Missing input parameters.');
@@ -136,16 +203,15 @@
                 // Iterating over route parameters
                 // and replacing them with input values.
                 for (var i in route.parameters) {
+                    var parameterName = route.parameters[i];
 
-                    var parameter = route.parameters[i];
-
-                    if (typeof inputParameters[parameter] == 'undefined') {
-                        throw new ReferenceError('Missing input parameter: "' + parameter + '" for route: "' + routeName + '".');
+                    if (typeof inputParameters[parameterName] == 'undefined') {
+                        throw new ReferenceError('Missing input parameter: "' + parameterName + '" for route: "' + routeName + '".');
                     }
 
                     path = path.replace(
-                        new RegExp('{\\s*' + parameter + '\\s*}', 'g'),
-                        castParameterToString(inputParameters[parameter])
+                        getRegExpForUrlGeneration(parameterName),
+                        castParameterToString(inputParameters[parameterName])
                     );
                 }
 
@@ -154,14 +220,30 @@
         };
     }
 
-    if (module && module.exports) {
-        // CommonJS.
+    var exported = false;
+
+    // AngularJS.
+    if ('undefined' !== typeof angular && angular.module) {
+        angular.module('ngRoutingService', ['ng'])
+            .service('routingService', RoutingService)
+        ;
+        exported = true;
+    }
+
+    // CommonJS.
+    if ('undefined' !== typeof module && module.exports) {
         module.exports = RoutingService;
-    } else if (define && define.amd) {
-        // AMD.
+        exported = true;
+    }
+
+    // AMD.
+    if ('undefined' !== typeof define && define.amd) {
         define([], RoutingService);
-    } else  {
-        // Falling back to global constructor.
+        exported = true;
+    }
+
+    // Falling back to global constructor.
+    if (!exported) {
         root.RoutingService = RoutingService;
     }
 

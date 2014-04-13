@@ -1,81 +1,162 @@
 You can use this library to define routes and generate URLs in your JavaScript environment be it NodeJS or web browser.
 
-This library is *CommonJS* and *AMD* compatible.
+This library is *AngularJS*, *CommonJS* and *AMD* compatible.
 
 # Installation
 
-Install it with bower: `bower install --save-dev js-router`
+## Using bower
+
+`bower install --save-dev betsol-js-router`
 
 # Usage
 
-## Instantiate a routing service
+## 1. Instantiate a routing service
 
 ### NodeJS
 
-    var RoutingService = require('router.js');
-    var routingService = new RoutingService();
+``` javascript
+var RoutingService = require('js-router.js');
+var routingService = new RoutingService();
+```
 
 ### Browser
 
 In browser environment `RoutingService` is registered globally with your `window` object.
 
-    <script type="text/javascript" src="router.js"></script>
-    <script type="text/javascript">
-        var routingService = new RoutingService();
-    </script>
+``` html
+<script type="text/javascript" src="router.js"></script>
+<script type="text/javascript">
+    var routingService = new RoutingService();
+</script>
+```
 
-## Specify routes configuration
+### AngularJS
 
-    routingService
-        .addRoute('home', {
-            path: '/home'
-        })
-        .addRoute('user', {
-            path: '/user/{userId}'
-        })
-        .addRoute('user.service', {
-            path: '/user/{userId}/service/{serviceId}'
-        })
-        .addRoute('spaces', {
-            path: '/spaces/{ spaces }'
-        })
-    ;
+``` javascript
+angular.module('myModule', ['ng', 'ngRoutingService'])
+    .controller('AppCtrl', function(routingService) {
+        // Use "routingService" instance.
+    })
+;
+```
 
-## Generate some routes
+## 2. Specify routes configuration
 
-    // '/home' => '/home'
-    routingService.generate('home');
+``` javascript
+routingService
+    .add('home', {
+        path: '/home'
+    })
+    .add('user', {
+        path: '/user/{userId}'
+    })
+    .add('user.service', {
+        path: '/user/{userId}/service/{serviceId}'
+    })
+    .add('spaces', {
+        path: '/spaces/{ spaces }'
+    })
+;
+```
 
-    // '/user/{userId}' => '/user/117'
-    routingService.generate('user', {
-        userId: 117
-    });
+## 3. Generate some routes
 
-    // '/user/{userId}' => '/user/1'
-    routingService.generate('user', {
-        userId: true
-    });
+``` javascript
+// '/home' => '/home'
+routingService.generate('home');
 
-    // '/user/{userId}' => '/user/0'
-    routingService.generate('user', {
-        userId: false
-    });
+// '/user/{userId}' => '/user/117'
+routingService.generate('user', {
+    userId: 117
+});
 
-    // '/user/{userId}' => '/user/'
-    routingService.generate('user', {
-        userId: null
-    });
+// '/user/{userId}' => '/user/1'
+routingService.generate('user', {
+    userId: true
+});
 
-    // '/user/{userId}/service/{serviceId}' => '/user/117/service/33'
-    routingService.generate('user.service', {
-        userId: 117,
-        serviceId: 33
-    });
+// '/user/{userId}' => '/user/0'
+routingService.generate('user', {
+    userId: false
+});
 
-    // '/spaces/{ spaces }' => '/spaces/spaces'
-    routingService.generate('spaces', {
-        spaces: 'spaces'
-    });
+// '/user/{userId}' => '/user/'
+routingService.generate('user', {
+    userId: null
+});
+
+// '/user/{userId}/service/{serviceId}' => '/user/117/service/33'
+routingService.generate('user.service', {
+    userId: 117,
+    serviceId: 33
+});
+
+// '/spaces/{ spaces }' => '/spaces/spaces'
+routingService.generate('spaces', {
+    spaces: 'spaces'
+});
+```
+
+# Configuration
+
+## Placeholder format
+
+It's possible to use different placeholder formats for your routes definitions.
+
+Consider this paths:
+
+- /foo/:fooId/bar/:barId/baz
+- /foo/{fooId}/bar/{barId}/baz
+
+First path is using [AngularJS style placeholders][angular-routing], i.e. `:placeholder`
+and the second one is using [Symfony style placeholders][symfony-routing]: `{placeholder}`.
+
+Routing service needs to now what placeholder format you are going to use in order to
+correctly parse paths and generate URLs. You can specify format by using public method
+`setPlaceholderPattern`.
+
+**Example:**
+
+``` javascript
+var routingService = new RoutingService()
+    .setPlaceholderPattern('symfony')
+    .add('foo-bar-baz', {
+        path: '/foo/{fooId}/bar/{barId}/baz'
+    })
+;
+
+var url = routingService.generate('foo-bar-baz', {
+    fooId: 100,
+    barId: 500
+});
+
+// url == "/foo/100/bar/500/baz"
+```
+
+The are two built-in placeholder formats:
+
+- "angular" (AngularJS or Ruby on Rails style)
+- "symfony" (Symfony framework style)
+
+It's also possible to specify arbitrary placeholder format by providing part of
+regular expression used both for parsing paths and generating URLs.
+
+**Example:**
+
+``` javascript
+var routingService = new RoutingService()
+    .setPlaceholderPattern('(%s)') // Django-style placeholder.
+    .add('foo-bar-baz', {
+        path: '/foo/(fooId)/bar/(barId)/baz'
+    })
+;
+```
+
+`%s` will be replaced with placeholder name during pattern matching.
+
+# Changelog
+
+[Changelog is here][changelog].
 
 # License
 
@@ -100,3 +181,7 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
+
+[angular-routing]: http://docs.angularjs.org/api/ngRoute/provider/$routeProvider
+[symfony-routing]: http://symfony.com/doc/current/book/routing.html
+[changelog]: https://github.com/betsol/js-router/blob/master/changelog.md

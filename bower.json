@@ -1,6 +1,6 @@
 {
-    "name": "js-router",
-    "description": "Routing library for JavaScript. You can define and generate routes with it.",
+    "name": "betsol-js-router",
+    "description": "Routing library for JavaScript. You can define routes and generate URLs with it.",
     "version": "1.0.0",
-    "main": "src/router.js"
+    "main": "src/js-router.js"
 }
