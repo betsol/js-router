@@ -203,6 +203,9 @@
                 // Iterating over route parameters
                 // and replacing them with input values.
                 for (var i in route.parameters) {
+                    if (!route.parameters.hasOwnProperty(i)) {
+                        continue;
+                    }
                     var parameterName = route.parameters[i];
 
                     if (typeof inputParameters[parameterName] == 'undefined') {
